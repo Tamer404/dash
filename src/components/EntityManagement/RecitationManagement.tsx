@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Plus, Search } from "lucide-react";
-import { Recitation, Course } from "../../types";
+import { Recitation, Course, Lesson, Student } from "../../types";
 import { apiService } from "../../services/api";
 import { Button } from "../UI/Button";
 import { Input } from "../UI/Input";
@@ -32,6 +32,8 @@ interface RecitationResponse {
 export const RecitationManagement: React.FC = () => {
   const [recitations, setRecitations] = useState<Recitation[]>([]);
   const [tahfeezCourses, setTahfeezCourses] = useState<Course[]>([]);
+  const [courseLessons, setCourseLessons] = useState<Lesson[]>([]);
+  const [courseStudents, setCourseStudents] = useState<Student[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<number | null>(null);
   const [selectedCourseTitle, setSelectedCourseTitle] = useState<string>("");
   const [courseRecitations, setCourseRecitations] = useState<RecitationResponse | null>(null);
@@ -49,6 +51,37 @@ export const RecitationManagement: React.FC = () => {
       setTahfeezCourses(tahfeezOnly);
     } catch (error) {
       console.error("Failed to fetch Tahfeez courses:", error);
+    }
+  };
+
+  const fetchCourseDetails = async (courseId: number) => {
+    try {
+      // Fetch course lessons and students
+      const [lessonsResponse, studentsResponse] = await Promise.all([
+        apiService.getAll("lessons"),
+        apiService.getAll("students")
+      ]);
+      
+      const allLessons = lessonsResponse.lessons || [];
+      const allStudents = studentsResponse.students || [];
+      
+      // Filter lessons for this course
+      const courseLessons = allLessons.filter((lesson: Lesson) => 
+        lesson.course_id && lesson.course_id.includes(courseId)
+      );
+      
+      // Get students enrolled in this course
+      const courseResponse = await apiService.getById("courses", courseId);
+      const course = courseResponse.course || courseResponse;
+      const enrolledStudentIds = course.students?.map((s: any) => typeof s === 'object' ? s.id : s) || [];
+      const courseStudents = allStudents.filter((student: Student) => 
+        enrolledStudentIds.includes(student.id)
+      );
+      
+      setCourseLessons(courseLessons);
+      setCourseStudents(courseStudents);
+    } catch (error) {
+      console.error("Failed to fetch course details:", error);
     }
   };
 
@@ -115,6 +148,7 @@ export const RecitationManagement: React.FC = () => {
     }
 
     setSelectedCourse(courseId);
+    await fetchCourseDetails(courseId);
     await fetchRecitationsByCourse(courseId);
   };
 
@@ -122,7 +156,8 @@ export const RecitationManagement: React.FC = () => {
     try {
       setValidationErrors({});
       if (editingRecitation?.id) {
-        await apiService.update("recitation", editingRecitation.id, recitationData);
+        // Use the new update endpoint for recitations
+        await apiService.updateRecitation(recitationData.course_id, recitationData.lesson_id, recitationData);
       } else {
         await apiService.create("recitation", recitationData);
       }
@@ -267,6 +302,19 @@ export const RecitationManagement: React.FC = () => {
         </Button>
       </div>
 
+      {/* Show message when no courses available */}
+      {!loading && tahfeezCourses.length === 0 && (
+        <div className="text-center py-12">
+          <div className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+          <h3 className="text-lg font-medium text-gray-900 mb-2">
+            No Tahfeez Courses Available
+          </h3>
+          <p className="text-gray-500">
+            Please create a Tahfeez course first to manage recitations.
+          </p>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <Table
           data={filteredRecitations}
@@ -291,6 +339,8 @@ export const RecitationManagement: React.FC = () => {
       >
         <RecitationForm
           recitation={editingRecitation}
+          courseLessons={courseLessons}
+          courseStudents={courseStudents}
           onSave={handleSave}
           onCancel={() => {
             setIsModalOpen(false);

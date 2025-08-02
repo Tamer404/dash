@@ -61,6 +61,8 @@ export interface Lesson {
   lesson_date: string;
   instructor_id: number;
   course_id: number[];
+  courses?: Course[];
+  instructors?: Instructor;
 }
 
 export interface Exam {
@@ -70,6 +72,7 @@ export interface Exam {
   max_mark: number;
   passing_mark: number;
   course_id: number;
+  course?: Course;
 }
 
 export interface StudentExam {

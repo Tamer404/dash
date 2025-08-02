@@ -8,6 +8,8 @@ import { MultiSelect } from '../UI/MultiSelect';
 
 interface RecitationFormProps {
   recitation?: Recitation | null;
+  courseLessons?: Lesson[];
+  courseStudents?: Student[];
   onSave: (data: Recitation) => void;
   onCancel: () => void;
   validationErrors?: Record<string, string[]>;
@@ -15,6 +17,8 @@ interface RecitationFormProps {
 
 export const RecitationForm: React.FC<RecitationFormProps> = ({
   recitation,
+  courseLessons = [],
+  courseStudents = [],
   onSave,
   onCancel,
   validationErrors = {},
@@ -32,8 +36,6 @@ export const RecitationForm: React.FC<RecitationFormProps> = ({
   });
 
   const [courses, setCourses] = useState<Course[]>([]);
-  const [lessons, setLessons] = useState<Lesson[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -65,14 +67,10 @@ export const RecitationForm: React.FC<RecitationFormProps> = ({
 
   const fetchData = async () => {
     try {
-      const [coursesResponse, lessonsResponse, studentsResponse] = await Promise.all([
+      const [coursesResponse] = await Promise.all([
         apiService.getAll('courses'),
-        apiService.getAll('lessons'),
-        apiService.getAll('students'),
       ]);
       setCourses(coursesResponse.courses || coursesResponse.data || []);
-      setLessons(lessonsResponse.lessons || lessonsResponse.data || []);
-      setStudents(studentsResponse.students || studentsResponse.data || []);
     } catch (error) {
       console.error('Failed to fetch data:', error);
     }
@@ -98,11 +96,12 @@ export const RecitationForm: React.FC<RecitationFormProps> = ({
   }));
 
   const lessonOptions = lessons.map((lesson) => ({
+  const lessonOptions = courseLessons.map((lesson) => ({
     value: lesson.id!,
     label: lesson.lesson_title,
   }));
 
-  const studentOptions = students.map((student) => ({
+  const studentOptions = courseStudents.map((student) => ({
     value: student.id!,
     label: student.name,
   }));
@@ -126,6 +125,7 @@ export const RecitationForm: React.FC<RecitationFormProps> = ({
   }));
 
   const selectedStudent = students.find(s => s.id === formData.student_id);
+  const selectedStudent = courseStudents.find(s => s.id === formData.student_id);
   const selectedCourse = courses.find(c => c.id === formData.course_id);
 
   return (

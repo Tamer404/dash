@@ -27,6 +27,39 @@ async getRecitationsByCourse(courseId: number) {
   return response.data;
 }
 
+  async updateRecitation(courseId: number, lessonId: number, data: any) {
+    try {
+      const config = this.getAxiosConfig(data);
+      const response = await axios.post(`${this.baseURL}/recitation/update/${courseId}/${lessonId}`, data, config);
+      return response.data;
+    } catch (error) {
+      console.error(`❌ Failed to update recitation for course ${courseId}, lesson ${lessonId}:`, error);
+      throw error;
+    }
+  }
+
+  async getStudentExams() {
+    try {
+      const config = this.getAxiosConfig();
+      const response = await axios.get(`${this.baseURL}/stdExam`, config);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to fetch student exams:', error);
+      throw error;
+    }
+  }
+
+  async getAllExams() {
+    try {
+      const config = this.getAxiosConfig();
+      const response = await axios.get(`${this.baseURL}/exams`, config);
+      return response.data;
+    } catch (error) {
+      console.error('❌ Failed to fetch all exams:', error);
+      throw error;
+    }
+  }
+
   async create(entity: EntityType, data: any) {
     try {
       const isFormData = data instanceof FormData;
